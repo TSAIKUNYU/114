@@ -293,7 +293,9 @@
 
     
      else {
-        const avatarImg = user.avatar ? `<img src="${user.avatar}" class="rounded-circle" style="width: 32px; height: 32px; object-fit: cover;">` : `<span class='nav-link'>👤</span>`;
+        const avatarImg = user.avatar
+          ? `<img src="${user.avatar}" class="rounded-circle" style="width: 32px; height: 32px; object-fit: cover; cursor: pointer;" onclick="openAvatarModal()">`
+          : `<span class='nav-link' style="cursor: pointer;" onclick="openAvatarModal()">👤</span>`;
 
         nav.innerHTML = `
           <li class='nav-item d-flex align-items-center'>${avatarImg}</li>
@@ -713,16 +715,6 @@ document.getElementById('avatarForm').addEventListener('submit', function (e) {
   }
 });
 
-function saveAvatar(avatarData) {
-  const user = JSON.parse(localStorage.getItem('loggedInUser'));
-  if (user) {
-    user.avatar = avatarData;
-    localStorage.setItem('loggedInUser', JSON.stringify(user));
-    alert('頭像已更新！');
-    location.reload(); // 重整畫面以更新導覽列頭像
-  }
-}
-
 function openAvatarModal() {
   new bootstrap.Modal(document.getElementById('avatarModal')).show();
 }
@@ -753,6 +745,28 @@ document.getElementById('loginForm').addEventListener('submit', function(e) {
     }
   }
 });
+
+function saveAvatar(avatarData) {
+  const user = JSON.parse(localStorage.getItem('loggedInUser'));
+  const users = JSON.parse(localStorage.getItem('users') || '[]');
+  if (user) {
+    user.avatar = avatarData;
+
+    // ✅ 更新 users 陣列裡該使用者的 avatar
+    const index = users.findIndex(u => u.email === user.email);
+    if (index !== -1) {
+      users[index].avatar = avatarData;
+      localStorage.setItem('users', JSON.stringify(users));
+    }
+
+    // ✅ 更新 loggedInUser
+    localStorage.setItem('loggedInUser', JSON.stringify(user));
+
+    alert('頭像已更新！');
+    location.reload(); // 重整畫面以顯示新頭像
+  }
+}
+
 
   </script>
 
