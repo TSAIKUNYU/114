@@ -1,0 +1,753 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>LearnLoop 線上學習平台</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <style>
+    body {
+      background: linear-gradient(135deg, #e3f0ff 0%, #f8f9fa 100%);
+      font-family: 'Segoe UI', 'Noto Sans TC', sans-serif;
+    }
+    .navbar {
+      background: linear-gradient(90deg, #0d6efd 0%, #6ea8fe 100%);
+      box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+    }
+    .navbar-brand {
+      font-weight: bold;
+      color: #fff !important;
+      font-size: 1.6rem;
+      letter-spacing: 2px;
+    }
+    .nav-link {
+      color: #fff !important;
+      font-weight: 500;
+      transition: color 0.2s;
+    }
+    .nav-link:hover {
+      color: #ffe082 !important;
+    }
+    h2, h4 {
+      color: #0d6efd;
+      font-weight: bold;
+      letter-spacing: 1px;
+    }
+    .course-card {
+      box-shadow: 0 4px 16px rgba(13,110,253,0.08);
+      border-radius: 12px;
+      transition: transform 0.2s, box-shadow 0.2s;
+      border: none;
+    }
+    .course-card:hover {
+      transform: scale(1.03);
+      box-shadow: 0 8px 24px rgba(13,110,253,0.15);
+    }
+    .btn-primary, .btn-success {
+      border-radius: 20px;
+      font-weight: 500;
+      letter-spacing: 1px;
+    }
+    .btn-outline-danger {
+      border-radius: 20px;
+    }
+    .form-control, .form-select {
+      border-radius: 10px;
+    }
+    #userGreeting {
+      margin-right: 1rem;
+    }
+    #addCourseForm .form-control, #addCourseForm .form-select, #addCourseForm textarea {
+      margin-bottom: 1rem;
+    }
+    .modal-content {
+      border-radius: 16px;
+      box-shadow: 0 4px 24px rgba(13,110,253,0.10);
+    }
+  </style>
+</head>
+<body>
+  <nav class="navbar navbar-expand-lg navbar-light bg-white shadow-sm">
+    <div class="container">
+      <a class="navbar-brand" href="#">LearnLoop</a>
+      <div class="collapse navbar-collapse">
+        <ul class="navbar-nav ms-auto" id="navActions">
+          <li class="nav-item"><a class="nav-link" href="#" id="adminPanelBtn">講師後台</a></li>
+          <li class="nav-item"><a class="nav-link" href="#" onclick="renderCourses(courses)">課程</a></li>
+          <li class="nav-item"><a class="nav-link" href="#" data-bs-toggle="modal" data-bs-target="#loginModal">登入</a></li>
+          <li class="nav-item"><a class="nav-link" href="#" data-bs-toggle="modal" data-bs-target="#registerModal">註冊</a></li>
+        </ul>
+      </div>
+    </div>
+  </nav>
+
+  <!-- Hero Section -->
+  <section id="welcomeSection" class="py-5 text-center bg-white mb-4" style="border-radius: 18px; box-shadow: 0 4px 24px rgba(13,110,253,0.08); margin-top: 2rem;">
+    <div class="container">
+      <h1 class="display-5 fw-bold" style="color:#0d6efd; letter-spacing:2px;">歡迎來到 LearnLoop 線上學習平台</h1>
+      <p class="lead mt-3 mb-4" style="color:#333;">最適合華語使用者的程式設計、資料分析、前端技術學習社群。隨時隨地，輕鬆學習、交流與成長！</p>
+      <a href="#" class="btn btn-success btn-lg px-4" data-bs-toggle="modal" data-bs-target="#registerModal">立即註冊</a>
+    </div>
+  </section>
+
+
+<!-- 新增課程 Modal -->
+<div class="modal fade" id="addCourseModal" tabindex="-1">
+  <div class="modal-dialog modal-lg">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title">新增課程</h5>
+        <button class="btn-close" data-bs-dismiss="modal"></button>
+      </div>
+      <div class="modal-body">
+        <form id="addCourseForm">
+          <div class="row g-2 mb-3">
+            <div class="col-md-4"><input class="form-control" id="newTitle" placeholder="課程名稱" required></div>
+            <div class="col-md-4"><input class="form-control" id="newTeacher" placeholder="講師名稱" required></div>
+            <div class="col-md-4"><input class="form-control" id="newCategory" placeholder="類別(前端/分析/設計)" required></div>
+          </div>
+          <textarea class="form-control mb-2" id="newDescription" placeholder="課程簡介" required></textarea>
+          <textarea class="form-control mb-2" id="newContent" placeholder="課程內容" required></textarea>
+          <input class="form-control mb-2" id="newVideo" placeholder="影片連結 (YouTube iframe)" required>
+          <button class="btn btn-success w-100">新增課程</button>
+        </form>
+      </div>
+    </div>
+  </div>
+</div>
+
+
+
+  <div class="container mt-4">
+    <h2 class="mb-4">推薦課程</h2>
+    <div class="d-flex flex-wrap gap-3 mb-3">
+      <select class="form-select" id="categoryFilter" onchange="searchCourses()" style="max-width: 200px">
+        <option value="all">所有類別</option>
+        <option value="前端">前端</option>
+        <option value="資料分析">資料分析</option>
+        <option value="程式設計">程式設計</option>
+      </select>
+      <select class="form-select" id="sortSelect" onchange="searchCourses()" style="max-width: 200px">
+        <option value="default">排序方式</option>
+        <option value="title">依名稱排序</option>
+        <option value="progress">依進度排序</option>
+      </select>
+      <input type="text" class="form-control" id="searchInput" placeholder="搜尋課程名稱" oninput="searchCourses()" style="max-width: 300px;" />
+    </div>
+    <div class="row" id="course-list"></div>
+  </div>
+
+  <!-- 登入 Modal -->
+  <div class="modal fade" id="loginModal" tabindex="-1"><div class="modal-dialog"><div class="modal-content">
+    <div class="modal-header"><h5 class="modal-title">登入</h5><button class="btn-close" data-bs-dismiss="modal"></button></div>
+    <div class="modal-body">
+      <form id="loginForm">
+        <div class="mb-2">
+          <label class="form-label">身分</label>
+          <select class="form-select" id="loginRole" required>
+            <option value="student">學員</option>
+            <option value="admin">管理者</option>
+          </select>
+        </div>
+        <input type="email" class="form-control mb-2" id="loginEmail" placeholder="Email" required />
+        <input type="password" class="form-control mb-2" id="loginPassword" placeholder="Password" required />
+        <button class="btn btn-primary w-100">登入</button>
+        <div class="text-danger mt-2" id="loginError"></div>
+      </form>
+    </div>
+  </div></div></div>
+
+  <!-- 註冊 Modal -->
+  <div class="modal fade" id="registerModal" tabindex="-1"><div class="modal-dialog"><div class="modal-content">
+    <div class="modal-header"><h5 class="modal-title">註冊</h5><button class="btn-close" data-bs-dismiss="modal"></button></div>
+    <div class="modal-body"><form id="registerForm">
+      <input type="text" class="form-control mb-2" id="registerName" placeholder="姓名" required />
+      <input type="email" class="form-control mb-2" id="registerEmail" placeholder="Email" required />
+      <input type="password" class="form-control mb-2" id="registerPassword" placeholder="密碼" required />
+      <div class="text-danger" id="registerError"></div>
+      <button class="btn btn-success w-100">建立帳號</button>
+    </form></div>
+  </div></div></div>
+
+  <!-- 講師管理後台 Modal -->
+<div class="modal fade" id="adminModal" tabindex="-1">
+  <div class="modal-dialog modal-lg">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title">講師後台管理</h5>
+        <button class="btn-close" data-bs-dismiss="modal"></button>
+      </div>
+      <div class="modal-body">
+        <ul class="list-group" id="adminCourseList"></ul>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- 編輯課程 Modal -->
+<div class="modal fade" id="editCourseModal" tabindex="-1">
+  <div class="modal-dialog modal-lg">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title">編輯課程</h5>
+        <button class="btn-close" data-bs-dismiss="modal"></button>
+      </div>
+      <div class="modal-body">
+        <form id="editCourseForm">
+          <input type="hidden" id="editIndex">
+          <div class="row g-2 mb-3">
+            <div class="col-md-4"><input class="form-control" id="editTitle" placeholder="課程名稱" required></div>
+            <div class="col-md-4"><input class="form-control" id="editTeacher" placeholder="講師名稱" required></div>
+            <div class="col-md-4"><input class="form-control" id="editCategory" placeholder="類別" required></div>
+          </div>
+          <textarea class="form-control mb-2" id="editDescription" placeholder="課程簡介" required></textarea>
+          <textarea class="form-control mb-2" id="editContent" placeholder="課程內容" required></textarea>
+          <input class="form-control mb-2" id="editVideo" placeholder="影片連結" required>
+          <button class="btn btn-primary w-100">儲存變更</button>
+        </form>
+      </div>
+    </div>
+  </div>
+</div>
+
+
+
+  <!-- 課程影片播放 Modal -->
+  <div class="modal fade" id="videoModal" tabindex="-1">
+    <div class="modal-dialog modal-lg modal-dialog-centered">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h5 class="modal-title" id="videoModalTitle">課程影片</h5>
+          <button class="btn-close" data-bs-dismiss="modal" onclick="stopVideo()"></button>
+        </div>
+        <div class="modal-body">
+          <div class="ratio ratio-16x9">
+            <iframe id="videoPlayer" src="" allowfullscreen></iframe>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+  
+  <!-- 頭像設定 Modal -->
+<div class="modal fade" id="avatarModal" tabindex="-1">
+  <div class="modal-dialog">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title">更換頭像</h5>
+        <button class="btn-close" data-bs-dismiss="modal"></button>
+      </div>
+      <div class="modal-body">
+        <form id="avatarForm">
+          <label class="form-label">選擇預設頭像</label>
+          <div class="d-flex gap-2 mb-3">
+            <img src="https://i.imgur.com/1.png" class="avatar-option" width="64" height="64">
+            <img src="https://i.imgur.com/2.png" class="avatar-option" width="64" height="64">
+            <img src="https://i.imgur.com/3.png" class="avatar-option" width="64" height="64">
+          </div>
+          <div class="mb-3">
+            <label class="form-label">或上傳圖片</label>
+            <input type="file" class="form-control" id="uploadAvatar" accept="image/*">
+          </div>
+          <button class="btn btn-primary w-100" type="submit">儲存頭像</button>
+        </form>
+      </div>
+    </div>
+  </div>
+</div>
+
+  <!-- JavaScript 區 -->
+  <script>
+    let favoriteCourses = JSON.parse(localStorage.getItem('favorites') || '[]');
+    let currentRole = null;
+    let currentEmail = null;
+
+    const user = JSON.parse(localStorage.getItem('loggedInUser'));
+    if (user) {
+      currentRole = user.role;
+      currentEmail = user.email;
+      const nav = document.getElementById('navActions');
+      if (user.role === 'admin') {
+        const avatarImg = user.avatar
+          ? `<img src="${user.avatar}" class="rounded-circle" style="width: 32px; height: 32px; object-fit: cover; cursor: pointer;" onclick="openAvatarModal()">`
+          : `<span class='nav-link' onclick="openAvatarModal()" style="cursor:pointer;">👤</span>`;
+
+
+        nav.innerHTML = `
+          <li class='nav-item'><a class='nav-link' href='#' id='adminPanelBtn'>講師後台</a></li>
+          <li class='nav-item'><a class='nav-link' href='#' data-bs-toggle='modal' data-bs-target='#addCourseModal'>新增課程</a></li>
+          <li class='nav-item d-flex align-items-center'>${avatarImg}</li>
+          <li class='nav-item'><span class='nav-link'>管理者，${user.email}</span></li>
+          <li class='nav-item'><a class='nav-link' href='#' onclick='logout()'>登出</a></li>
+        `;
+      }
+
+    
+     else {
+        const avatarImg = user.avatar ? `<img src="${user.avatar}" class="rounded-circle" style="width: 32px; height: 32px; object-fit: cover;">` : `<span class='nav-link'>👤</span>`;
+
+        nav.innerHTML = `
+          <li class='nav-item d-flex align-items-center'>${avatarImg}</li>
+          <li class='nav-item'><span class='nav-link'>歡迎，${user.email}</span></li>
+          <li class='nav-item'><a class='nav-link' href='#' onclick='logout()'>登出</a></li>
+        `;
+      }
+      updateAdminPanelBtn();
+    }
+
+    
+    function logout() {
+      alert('您已成功登出');
+      localStorage.removeItem('loggedInUser');
+      currentRole = null;
+      currentEmail = null;
+      location.reload();
+    }
+    
+    let courses = [];
+
+try {
+  const stored = JSON.parse(localStorage.getItem('courseList'));
+  if (Array.isArray(stored)) {
+    courses = stored;
+  } else {
+    throw new Error();
+  }
+} catch (e) {
+  // 預設課程
+  courses = [
+    {
+      title: 'JavaScript 基礎',
+      teacher: '王小明',
+      category: '程式設計',
+      description: '學習 JS 語法與 DOM 操作',
+      content: 'JS 課程內容...',
+      video: 'https://www.youtube.com/embed/dQw4w9WgXcQ',
+      progress: 20
+    },
+    {
+      title: 'Python 資料分析',
+      teacher: '林志玲',
+      category: '資料分析',
+      description: 'Pandas、NumPy 應用',
+      content: 'Python 分析課程...',
+      video: 'https://www.youtube.com/embed/9XwDpMZy1xk',
+      progress: 50
+    },
+      {
+        title: '前端開發實戰',
+        teacher: '李大仁',
+        category: '前端',
+        description: 'HTML/CSS/React 入門',
+        content: '前端課程內容...',
+        video: 'https://www.youtube.com/embed/Ke90Tje7VS0',
+        progress: 80
+      },
+      {
+        title: '資料庫設計與SQL',
+        teacher: '陳美華',
+        category: '程式設計',
+        description: '學習資料庫設計與 SQL 查詢語法',
+        content: '資料庫課程內容...',
+        video: 'https://www.youtube.com/embed/HXV3zeQKqGY',
+        progress: 0
+      },
+      {
+        title: 'AI人工智慧入門',
+        teacher: '張智傑',
+        category: '資料分析',
+        description: 'AI 概念與應用實例',
+        content: 'AI 課程內容...',
+        video: 'https://www.youtube.com/embed/aircAruvnKk',
+        progress: 0
+      },
+      {
+        title: '網頁設計美學',
+        teacher: '林怡君',
+        category: '前端',
+        description: '網頁設計配色與排版技巧',
+        content: '設計課程內容...',
+        video: 'https://www.youtube.com/embed/3t9lQzE3l0E',
+        progress: 0
+      },
+      {
+        title: 'React 進階實戰',
+        teacher: '王大偉',
+        category: '前端',
+        description: 'React hooks、狀態管理與專案實作',
+        content: 'React 進階課程內容...',
+        video: 'https://www.youtube.com/embed/Tn6-PIqc4UM',
+        progress: 0
+      },
+      {
+        title: 'Excel 數據分析',
+        teacher: '李玉芬',
+        category: '資料分析',
+        description: 'Excel 樞紐分析與自動化',
+        content: 'Excel 課程內容...',
+        video: 'https://www.youtube.com/embed/8lXerL5tQzA',
+        progress: 0
+      }
+    ];
+    localStorage.setItem('courseList', JSON.stringify(courses));
+}
+
+    courses.forEach(c => {
+      const p = parseInt(localStorage.getItem('progress_' + c.title));
+      if (!isNaN(p)) c.progress = p;
+    });
+
+    function renderCourses(list) {
+  const wrap = document.getElementById('course-list');
+  wrap.innerHTML = '';
+  list.forEach((c, i) => {
+    const col = document.createElement('div');
+    col.className = 'col-md-4';
+    
+    let actionButton = '';
+
+if (currentRole === 'admin') {
+  actionButton = `<button class='btn btn-sm btn-secondary' onclick='openAdminPanel()'>管理課程</button>`;
+} else if (currentRole === 'student') {
+  actionButton = `<button class='btn btn-sm btn-primary' onclick='showCourse(${i})'>開始學習</button>`;
+} else {
+  actionButton = `<span class='text-muted'>請登入以操作</span>`;
+}
+
+
+    col.innerHTML = `
+  <div class='card course-card mb-4'>
+    <div class='card-body'>
+      <h5 class='card-title'>${c.title}</h5>
+      <p class='card-text'>${c.description}</p>
+      <p class='text-muted'>講師：${c.teacher}</p>
+      ${actionButton}
+      <button class='btn btn-sm btn-outline-danger ms-2' onclick='toggleFavorite("${c.title}")'>
+        ${favoriteCourses.includes(c.title) ? '移除最愛' : '加入最愛'}
+      </button>
+    </div>
+  </div>
+`;
+
+    wrap.appendChild(col);
+  });
+}
+
+function refreshUI() {
+  // 從 localStorage 抓最新的課程
+  courses = JSON.parse(localStorage.getItem('courseList') || '[]');
+
+  // 重新渲染課程清單
+  renderCourses(courses);
+
+  // 手動重繪後台課程列表
+  const list = document.getElementById('adminCourseList');
+  if (list) {
+    list.innerHTML = '';
+    courses.forEach((c, i) => {
+      const item = document.createElement('li');
+      item.className = 'list-group-item';
+      item.innerHTML = `
+        <div class="d-flex justify-content-between align-items-center w-100">
+          <span><strong>${c.title}</strong> - ${c.teacher} (${c.category})</span>
+          <div>
+            <button class="btn btn-sm btn-primary me-2" onclick="startEditCourse(${i})">編輯</button>
+            <button class="btn btn-sm btn-danger" onclick="deleteCourse(${i})">刪除</button>
+          </div>
+        </div>
+      `;
+      list.appendChild(item);
+    });
+  }
+}
+
+
+
+function startEditCourse(index) {
+  const c = courses[index];
+  document.getElementById('editIndex').value = index;
+  document.getElementById('editTitle').value = c.title;
+  document.getElementById('editTeacher').value = c.teacher;
+  document.getElementById('editCategory').value = c.category;
+  document.getElementById('editDescription').value = c.description;
+  document.getElementById('editContent').value = c.content;
+  document.getElementById('editVideo').value = c.video;
+
+  new bootstrap.Modal(document.getElementById('editCourseModal')).show();
+}
+
+
+
+    function showCourse(index) {
+      const c = courses[index];
+      
+
+      if (!currentRole) {
+        alert('請先登入才能觀看課程影片');
+        return;
+      }
+
+      if (confirm(`目前進度為 ${c.progress}%\n是否要觀看課程影片？`)) {
+          document.getElementById('videoModalTitle').innerText = `${c.title} - 課程影片`;
+          document.getElementById('videoPlayer').src = c.video + '?autoplay=1';
+          new bootstrap.Modal(document.getElementById('videoModal')).show();
+      }
+    }
+
+    function stopVideo() {
+      document.getElementById('videoPlayer').src = '';
+    }
+
+    function toggleFavorite(title) {
+      if (favoriteCourses.includes(title)) {
+        favoriteCourses = favoriteCourses.filter(t => t !== title);
+      } else {
+        favoriteCourses.push(title);
+      }
+      localStorage.setItem('favorites', JSON.stringify(favoriteCourses));
+      renderCourses(courses);
+    }
+
+    function searchCourses() {
+      const keyword = document.getElementById('searchInput').value.toLowerCase();
+      const category = document.getElementById('categoryFilter').value;
+      const sort = document.getElementById('sortSelect').value;
+      let result = courses.filter(c => c.title.toLowerCase().includes(keyword));
+      if (category !== 'all') result = result.filter(c => c.category === category);
+      if (sort === 'title') result.sort((a, b) => a.title.localeCompare(b.title));
+      if (sort === 'progress') result.sort((a, b) => b.progress - a.progress);
+      renderCourses(result);
+    }
+
+    // 監控登入狀態，控制講師後台按鈕
+    function updateAdminPanelBtn() {
+      const btn = document.getElementById('adminPanelBtn');
+      if (btn) {
+        btn.onclick = function(e) {
+          if (currentRole !== 'admin') {
+            e.preventDefault();
+            alert('只有管理者可以進入講師後台');
+            return false;
+          } else {
+            openAdminPanel();
+          }
+        };
+      }
+    }
+    // 初始執行
+    updateAdminPanelBtn();
+
+
+    document.getElementById('registerForm').addEventListener('submit', function(e) {
+      e.preventDefault();
+      const email = document.getElementById('registerEmail').value;
+      const pw = document.getElementById('registerPassword').value;
+      const users = JSON.parse(localStorage.getItem('users') || '[]');
+      if (users.some(u => u.email === email)) {
+        document.getElementById('registerError').innerText = '此電子郵件已被註冊'; return;
+      }
+      if (pw.length < 6 || !/[A-Z]/.test(pw) || !/[0-9]/.test(pw)) {
+        document.getElementById('registerError').innerText = '密碼強度不足'; return;
+      }
+
+      users.push({ email, pw ,avatar: 'https://i.imgur.com/1.png'});
+
+      localStorage.setItem('users', JSON.stringify(users));
+      alert('註冊成功');
+      bootstrap.Modal.getInstance(document.getElementById('registerModal')).hide();
+    });
+
+    function scheduleReminder() {
+      const now = new Date();
+      const next9 = new Date();
+      next9.setHours(9, 0, 0, 0);
+      if (now > next9) next9.setDate(next9.getDate() + 1);
+      const t = next9.getTime() - now.getTime();
+      setTimeout(() => { alert('📚 每日提醒：記得學習！'); scheduleReminder(); }, t);
+    }
+
+    function openAdminPanel(showModal = true) {
+  const list = document.getElementById('adminCourseList');
+  list.innerHTML = '';
+  courses.forEach((c, i) => {
+    const item = document.createElement('li');
+    item.className = 'list-group-item';
+    item.innerHTML = `
+  <div class="d-flex justify-content-between align-items-center w-100">
+    <span><strong>${c.title}</strong> - ${c.teacher} (${c.category})</span>
+    <div>
+      <button class="btn btn-sm btn-primary me-2" onclick="startEditCourse(${i})">編輯</button>
+      <button class="btn btn-sm btn-danger" onclick="deleteCourse(${i})">刪除</button>
+    </div>
+  </div>
+`;
+
+    list.appendChild(item);
+  });
+
+  // 只有在「第一次點開」時才 show 出來
+  if (showModal) {
+    const modal = new bootstrap.Modal(document.getElementById('adminModal'));
+    modal.show();
+  }
+}
+
+
+
+    document.getElementById('addCourseForm').addEventListener('submit', function(e) {
+      e.preventDefault();
+      const newCourse = {
+        title: document.getElementById('newTitle').value,
+        teacher: document.getElementById('newTeacher').value,
+        category: document.getElementById('newCategory').value,
+        description: document.getElementById('newDescription').value,
+        content: document.getElementById('newContent').value,
+        video: document.getElementById('newVideo').value,
+        progress: 0
+      };
+      courses.push(newCourse);
+      localStorage.setItem('courseList', JSON.stringify(courses));
+      alert('課程已新增');
+      
+      refreshUI();
+
+      document.getElementById('addCourseForm').reset();
+    });
+
+    function showCourse(index) {
+      const c = courses[index];
+      if (!currentRole) {
+        alert('請先登入才能觀看課程影片');
+        return;
+      }
+      if (confirm(`目前進度為 ${c.progress}%\n是否要觀看課程影片？`)) {
+        // ✅ 儲存學生的觀看進度
+        if (currentRole === 'student') {
+          localStorage.setItem('progress_' + c.title + '_' + currentEmail, c.progress);
+        }
+        document.getElementById('videoModalTitle').innerText = `${c.title} - 課程影片`;
+        document.getElementById('videoPlayer').src = c.video + '?autoplay=1';
+        new bootstrap.Modal(document.getElementById('videoModal')).show();
+      }
+    }
+
+    function deleteCourse(index) {
+      if (confirm('確定要刪除這門課程嗎？')) {
+        courses.splice(index, 1);
+        localStorage.setItem('courseList', JSON.stringify(courses));
+        
+        refreshUI();
+
+      }
+    }
+
+    renderCourses(courses);
+    scheduleReminder();
+
+    if (localStorage.getItem('loggedInUser')) {
+      const welcome = document.getElementById('welcomeSection');
+      if (welcome) welcome.style.display = 'none';
+    }
+
+    document.getElementById('editCourseForm').addEventListener('submit', function(e) {
+  e.preventDefault();
+  const index = parseInt(document.getElementById('editIndex').value);
+  if (isNaN(index) || index < 0 || index >= courses.length) {
+    alert('發生錯誤，無法儲存課程。');
+    return;
+  }
+
+  // 更新課程資料
+  courses[index] = {
+    ...courses[index], // 保留原本 progress
+    title: document.getElementById('editTitle').value,
+    teacher: document.getElementById('editTeacher').value,
+    category: document.getElementById('editCategory').value,
+    description: document.getElementById('editDescription').value,
+    content: document.getElementById('editContent').value,
+    video: document.getElementById('editVideo').value
+  };
+
+  // 儲存並刷新畫面
+  localStorage.setItem('courseList', JSON.stringify(courses));
+  refreshUI();
+
+  // 關閉 modal
+  bootstrap.Modal.getInstance(document.getElementById('editCourseModal')).hide();
+  alert('課程已更新');
+});
+
+let selectedAvatar = null;
+
+document.querySelectorAll('.avatar-option').forEach(img => {
+  img.onclick = function () {
+    selectedAvatar = img.src;
+    document.querySelectorAll('.avatar-option').forEach(i => i.classList.remove('border', 'border-primary'));
+    img.classList.add('border', 'border-primary');
+  };
+});
+
+document.getElementById('avatarForm').addEventListener('submit', function (e) {
+  e.preventDefault();
+  const file = document.getElementById('uploadAvatar').files[0];
+
+  if (file) {
+    const reader = new FileReader();
+    reader.onload = function () {
+      saveAvatar(reader.result);
+    };
+    reader.readAsDataURL(file);
+  } else if (selectedAvatar) {
+    saveAvatar(selectedAvatar);
+  } else {
+    alert('請選擇或上傳一張頭像');
+  }
+});
+
+function saveAvatar(avatarData) {
+  const user = JSON.parse(localStorage.getItem('loggedInUser'));
+  if (user) {
+    user.avatar = avatarData;
+    localStorage.setItem('loggedInUser', JSON.stringify(user));
+    alert('頭像已更新！');
+    location.reload(); // 重整畫面以更新導覽列頭像
+  }
+}
+
+function openAvatarModal() {
+  new bootstrap.Modal(document.getElementById('avatarModal')).show();
+}
+
+document.getElementById('loginForm').addEventListener('submit', function(e) {
+  e.preventDefault();
+  const email = document.getElementById('loginEmail').value;
+  const pw = document.getElementById('loginPassword').value;
+  const role = document.getElementById('loginRole').value;
+
+  if (role === 'admin') {
+  const users = JSON.parse(localStorage.getItem('users') || '[]');
+  const admin = users.find(u => u.email === email && u.pw === pw && u.role === 'admin');
+  if (admin) {
+    localStorage.setItem('loggedInUser', JSON.stringify(admin));
+    location.reload();
+  } else {
+    document.getElementById('loginError').innerText = '管理者帳號或密碼錯誤';
+  }
+}else {
+    const users = JSON.parse(localStorage.getItem('users') || '[]');
+    const found = users.find(u => u.email === email && u.pw === pw);
+    if (found) {
+      localStorage.setItem('loggedInUser', JSON.stringify(found));
+      location.reload();
+    } else {
+      document.getElementById('loginError').innerText = '帳號或密碼錯誤';
+    }
+  }
+});
+
+  </script>
+
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>
