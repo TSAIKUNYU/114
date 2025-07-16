@@ -738,6 +738,7 @@ document.getElementById('loginForm').addEventListener('submit', function(e) {
     const users = JSON.parse(localStorage.getItem('users') || '[]');
     const found = users.find(u => u.email === email && u.pw === pw);
     if (found) {
+      found.role = 'student';
       localStorage.setItem('loggedInUser', JSON.stringify(found));
       location.reload();
     } else {
